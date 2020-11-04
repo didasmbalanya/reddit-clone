@@ -5,6 +5,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
 import { hash, verify } from "argon2";
@@ -44,7 +45,7 @@ export class UserResolver {
   @Mutation(() => UserResponse, { nullable: true })
   async register(
     @Arg("options") { username, password }: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse | null> {
     if (username.length <= 2 || password.length <= 2) {
       return {
@@ -74,13 +75,18 @@ export class UserResolver {
         };
       }
     }
+
+    // store user id session
+    // login the user
+    req.session.userId;
+
     return { user };
   }
 
   @Mutation(() => UserResponse, { nullable: true })
   async login(
     @Arg("options") { username, password }: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username });
     if (!user)
@@ -94,6 +100,15 @@ export class UserResolver {
         errors: [{ field: "password", message: INVALID_CREDENTAILS }],
       };
 
+    req.session.userId = user.id;
+
     return { user };
+  }
+
+  @Query(() => User, { nullable: true })
+  me(@Ctx() { req, em }: MyContext): Promise<User | null> | null {
+    const id = req.session.userId;
+    if (!id) return null;
+    return em.findOne(User, { id });
   }
 }

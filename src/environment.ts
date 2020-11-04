@@ -6,5 +6,6 @@ export const {
   DATABASE_USER = "postgres",
   DATABASE_PASSWORD = "postgres",
   PORT = 5000,
+  SESSION_SECRET = "sessionsecret"
 } = process.env;
 
