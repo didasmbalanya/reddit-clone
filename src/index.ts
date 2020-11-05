@@ -7,8 +7,9 @@ import { buildSchema } from "type-graphql";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
+import cors from "cors";
 
-import { __prod__ } from "./constants";
+import { COOKIE_NAME, __prod__ } from "./constants";
 import microConfig from "./mikro-orm.config";
 import { PORT, SESSION_SECRET } from "./environment";
 import { PostResolver, UserResolver } from "./resolvers/";
@@ -22,6 +23,8 @@ const main = async () => {
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
 
+  app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+
   app.use(
     session({
       cookie: {
@@ -30,7 +33,7 @@ const main = async () => {
         sameSite: "lax",
         secure: __prod__, // work only on prod ie https,
       },
-      name: "qid",
+      name: COOKIE_NAME,
       resave: false,
       saveUninitialized: false,
       secret: SESSION_SECRET,
@@ -47,7 +50,10 @@ const main = async () => {
     context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({
+    app,
+    cors: { origin: false },
+  });
 
   app.listen(PORT, () =>
     console.log(

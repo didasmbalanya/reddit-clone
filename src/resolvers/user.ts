@@ -12,7 +12,7 @@ import { hash, verify } from "argon2";
 
 import { MyContext } from "../types";
 import { User } from "../entities/";
-import { INVALID_CREDENTAILS } from "../constants";
+import { COOKIE_NAME, INVALID_CREDENTAILS } from "../constants";
 
 @InputType()
 class UsernamePasswordInput {
@@ -47,13 +47,22 @@ export class UserResolver {
     @Arg("options") { username, password }: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse | null> {
-    if (username.length <= 2 || password.length <= 2) {
+    if (username.length <= 2) {
       return {
         errors: [
           {
-            field: "register input",
-            message:
-              "username and password fields can't be less than 3 characters",
+            field: "username",
+            message: "username can't be less than 3 characters",
+          },
+        ],
+      };
+    }
+    if (password.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "password",
+            message: "password can't be less than 3 characters",
           },
         ],
       };
@@ -78,7 +87,7 @@ export class UserResolver {
 
     // store user id session
     // login the user
-    req.session.userId;
+    req.session.userId = user.id;
 
     return { user };
   }
@@ -110,5 +119,23 @@ export class UserResolver {
     const id = req.session.userId;
     if (!id) return null;
     return em.findOne(User, { id });
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log("\n\n>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<\n\n");
+          console.log(err);
+          console.log("\n\n>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<\n\n");
+
+          resolve(false);
+        }
+
+        resolve(true);
+      })
+    );
   }
 }
